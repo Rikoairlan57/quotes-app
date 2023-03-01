@@ -1,3 +1,4 @@
+import '../model/page_configuration.dart';
 import '../screen/register_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -7,16 +8,18 @@ import '../screen/login_screen.dart';
 import '../screen/quote_detail_screen.dart';
 import '../screen/quotes_list_screen.dart';
 import '../screen/splash_screen.dart';
+import '../screen/unknown_screen.dart';
 
-class MyRouterDelegate extends RouterDelegate
+class MyRouterDelegate extends RouterDelegate<PageConfiguration>
     with ChangeNotifier, PopNavigatorRouterDelegateMixin {
   final GlobalKey<NavigatorState> _navigatorKey;
   final AuthRepository authRepository;
 
+  bool? isUnknown;
+
   MyRouterDelegate(
     this.authRepository,
   ) : _navigatorKey = GlobalKey<NavigatorState>() {
-    /// todo 9: create initial function to check user logged in.
     _init();
   }
 
@@ -30,15 +33,15 @@ class MyRouterDelegate extends RouterDelegate
 
   String? selectedQuote;
 
-  /// todo 8: add historyStack variable to maintaining the stack
   List<Page> historyStack = [];
   bool? isLoggedIn;
   bool isRegister = false;
 
   @override
   Widget build(BuildContext context) {
-    /// todo 11: create conditional statement to declare historyStack based on  user logged in.
-    if (isLoggedIn == null) {
+    if (isUnknown == true) {
+      historyStack = _unknownStack;
+    } else if (isLoggedIn == null) {
       historyStack = _splashStack;
     } else if (isLoggedIn == true) {
       historyStack = _loggedInStack;
@@ -47,8 +50,6 @@ class MyRouterDelegate extends RouterDelegate
     }
     return Navigator(
       key: navigatorKey,
-
-      /// todo 10: change the list with historyStack
       pages: historyStack,
       onPopPage: (route, result) {
         final didPop = route.didPop(result);
@@ -66,11 +67,55 @@ class MyRouterDelegate extends RouterDelegate
   }
 
   @override
-  Future<void> setNewRoutePath(configuration) async {
-    /* Do Nothing */
+  PageConfiguration? get currentConfiguration {
+    if (isLoggedIn == null) {
+      return PageConfiguration.splash();
+    } else if (isRegister == true) {
+      return PageConfiguration.register();
+    } else if (isLoggedIn == false) {
+      return PageConfiguration.login();
+    } else if (isUnknown == true) {
+      return PageConfiguration.unknown();
+    } else if (selectedQuote == null) {
+      return PageConfiguration.home();
+    } else if (selectedQuote != null) {
+      return PageConfiguration.detailQuote(selectedQuote!);
+    } else {
+      return null;
+    }
   }
 
-  /// todo 12: add these variable to support history stack
+  @override
+  Future<void> setNewRoutePath(PageConfiguration configuration) async {
+    if (configuration.isUnknownPage) {
+      isUnknown = true;
+      isRegister = false;
+    } else if (configuration.isRegisterPage) {
+      isRegister = true;
+    } else if (configuration.isHomePage ||
+        configuration.isLoginPage ||
+        configuration.isSplashPage) {
+      isUnknown = false;
+      selectedQuote = null;
+      isRegister = false;
+    } else if (configuration.isDetailPage) {
+      isUnknown = false;
+      isRegister = false;
+      selectedQuote = configuration.quoteId.toString();
+    } else {
+      print(' Could not set new route');
+    }
+
+    notifyListeners();
+  }
+
+  List<Page> get _unknownStack => const [
+        MaterialPage(
+          key: ValueKey("UnknownPage"),
+          child: UnknownScreen(),
+        ),
+      ];
+
   List<Page> get _splashStack => const [
         MaterialPage(
           key: ValueKey("SplashScreen"),
@@ -82,7 +127,6 @@ class MyRouterDelegate extends RouterDelegate
         MaterialPage(
           key: const ValueKey("LoginPage"),
           child: LoginScreen(
-            /// todo 17: add onLogin and onRegister method to update the state
             onLogin: () {
               isLoggedIn = true;
               notifyListeners();
@@ -118,9 +162,6 @@ class MyRouterDelegate extends RouterDelegate
               selectedQuote = quoteId;
               notifyListeners();
             },
-
-            /// todo 21: add onLogout method to update the state and
-            /// create a logout button
             onLogout: () {
               isLoggedIn = false;
               notifyListeners();
