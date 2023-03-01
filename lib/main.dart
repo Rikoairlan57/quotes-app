@@ -30,6 +30,7 @@ class _QuotesAppState extends State<QuotesApp> {
     return ChangeNotifierProvider(
       create: (context) => PageManager(),
       child: MaterialApp(
+        debugShowCheckedModeBanner: false,
         title: 'Quotes App',
         home: Router(
           routerDelegate: myRouterDelegate,
