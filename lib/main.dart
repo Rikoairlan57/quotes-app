@@ -1,8 +1,8 @@
+import '../db/auth_repository.dart';
+import '../provider/auth_provider.dart';
+import '../routes/router_delegate.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
-import 'routes/page_manager.dart';
-import 'routes/router_delegate.dart';
 
 void main() {
   runApp(const QuotesApp());
@@ -18,19 +18,25 @@ class QuotesApp extends StatefulWidget {
 class _QuotesAppState extends State<QuotesApp> {
   late MyRouterDelegate myRouterDelegate;
 
+  /// todo 6: add variable for create instance
+  late AuthProvider authProvider;
+
   @override
   void initState() {
     super.initState();
-    myRouterDelegate = MyRouterDelegate();
+    final authRepository = AuthRepository();
+
+    authProvider = AuthProvider(authRepository);
+
+    /// todo 7: inject auth to router delegate
+    myRouterDelegate = MyRouterDelegate(authRepository);
   }
 
   @override
   Widget build(BuildContext context) {
-    /// todo-03-manager-05: cover MaterialApp with PageManager
     return ChangeNotifierProvider(
-      create: (context) => PageManager(),
+      create: (context) => authProvider,
       child: MaterialApp(
-        debugShowCheckedModeBanner: false,
         title: 'Quotes App',
         home: Router(
           routerDelegate: myRouterDelegate,
